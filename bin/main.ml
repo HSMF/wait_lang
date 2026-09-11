@@ -20,4 +20,6 @@ let () =
   match Wait.Parse.parse src with
   | Error e -> print_endline e
   | Ok (names, ast) ->
-      List.iter (fun item -> print_endline @@ Wait.Glue.item_to_string item) ast
+      List.iter
+        (fun item -> print_endline @@ Wait.Glue.Ast.item_to_string item)
+        ast

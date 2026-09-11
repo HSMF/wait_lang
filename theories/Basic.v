@@ -116,9 +116,26 @@ Module Ir.
   .
 End Ir.
 
-Definition compile ( e : Ast.item ) : nat :=
+Module Compile.
+
+Inductive names : Set :=
+  Names : Ir.label → Ir.ident → names
+.
+
+Inductive func_state : Set :=
+  FuncState : names → list Ir.basic_block → func_state
+.
+
+Definition compile_func ( name : nat ) (ret : Ast.typ) ( body : list Ast.statement ) : Ir.func :=
+  let entry := Ir.BasicBlock (Ir.Label O) nil (Ir.Jump (Ir.Label O)) in
+  Ir.Func name entry (nil)
+.
+
+End Compile.
+
+Definition compile ( e : Ast.item ) : Ir.func :=
   match e with
-  | Ast.Func name ret body => name
+  | Ast.Func name ret body => Compile.compile_func name ret body
   end.
 
 Definition foo ( e : Ir.func ) : nat :=

@@ -43,14 +43,15 @@ class ConstructorDeclaration:
         return cls(name=(constructor_name.text or b"").decode(), fields=fields)
 
 
+def mk_name(name: str):
+    return f"{name}_to_string"
+
+
 def to_string(name: str, cons: list[ConstructorDeclaration]):
     generics = sorted(
         {a.replace("'", "") for c in cons for f in c.fields for a in f.app if "'" in a}
     )
     recursive = any(a == name for c in cons for f in c.fields for a in f.app)
-
-    def mk_name(name: str):
-        return f"{name}_to_string"
 
     def field_des(f: list[Field]) -> str:
         if len(f) == 0:
@@ -122,7 +123,12 @@ def main():
         name = x["name"][0]
         body = x["body"][0]
 
-        assert body.type == "variant_declaration"
+        if body.type == "type_constructor_path":
+            name = text(name)
+            print(f"let {mk_name(name)} = {mk_name(text(body))}")
+            continue
+
+        assert body.type == "variant_declaration", body.type
         sum_type(text(name), body)
 
     # for c in transpose(captures):
