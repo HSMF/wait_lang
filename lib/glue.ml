@@ -20,6 +20,7 @@ let rec list_of_rlist l =
   | Extracted.Cons (x, xs) -> x :: list_of_rlist xs
 
 open Extracted
+open Ast
 
 let ( ++ ) = String.cat
 

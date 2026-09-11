@@ -7,6 +7,8 @@ type ctx = {
 type parse_error = string
 type 'a result = (ctx * 'a, parse_error) Result.t
 
+module Ast = Extracted.Ast
+
 let unexpected_token expected tok : 'a result =
   Error
     (Printf.sprintf "unexpected token: %s (expected %s)"
@@ -58,7 +60,7 @@ let expect_const tok =
 
 let typ ctx =
   expect "ident" ident ctx
-  |> Result.map (fun (ctx, id) -> (ctx, Extracted.TVar (Glue.nat_of_int id)))
+  |> Result.map (fun (ctx, id) -> (ctx, Ast.TVar (Glue.nat_of_int id)))
 
 let parse_binop child map ctx =
   child ctx >>= fun (ctx, lhs) ->
@@ -68,8 +70,7 @@ let parse_binop child map ctx =
     match tok with
     | None -> Ok (ctx, lhs)
     | Some op ->
-        child ctx >>= fun (ctx, rhs) ->
-        loop (Extracted.EBinop (lhs, op, rhs)) ctx
+        child ctx >>= fun (ctx, rhs) -> loop (Ast.EBinop (lhs, op, rhs)) ctx
   in
   loop lhs ctx
 
@@ -78,8 +79,8 @@ let map_tok = Fun.flip List.assoc_opt
 let rec term ctx =
   match next ctx with
   | ctx, Some (Lex.Integer i) ->
-      Ok (ctx, Extracted.EInteger (Glue.nat_of_int (Int64.to_int i)))
-  | ctx, Some (Lex.Ident i) -> Ok (ctx, Extracted.EVar (Glue.nat_of_int i))
+      Ok (ctx, Ast.EInteger (Glue.nat_of_int (Int64.to_int i)))
+  | ctx, Some (Lex.Ident i) -> Ok (ctx, Ast.EVar (Glue.nat_of_int i))
   | ctx, Some Lex.OpenParen ->
       expr ctx >>= fun (ctx, e) ->
       expect_const Lex.CloseParen ctx >>= fun (ctx, ()) -> Ok (ctx, e)
@@ -87,17 +88,15 @@ let rec term ctx =
   | ctx, None -> unexpected_eof
 
 and div_or_mul ctx =
-  parse_binop term
-    (map_tok [ (Lex.Slash, Extracted.BDiv); (Lex.Star, Extracted.BMul) ])
-    ctx
+  parse_binop term (map_tok [ (Lex.Slash, Ast.BDiv); (Lex.Star, Ast.BMul) ]) ctx
 
 and add_or_sub ctx =
   parse_binop div_or_mul
-    (map_tok [ (Lex.Plus, Extracted.BAdd); (Lex.Minus, Extracted.BSub) ])
+    (map_tok [ (Lex.Plus, Ast.BAdd); (Lex.Minus, Ast.BSub) ])
     ctx
 
 and cmps ctx =
-  let open Extracted in
+  let open Ast in
   let open Lex in
   parse_binop add_or_sub
     (map_tok
@@ -119,12 +118,12 @@ let rec statement ctx =
       expect_const Lex.Colon ctx >>= fun (ctx, ()) ->
       typ ctx >>= fun (ctx, t) ->
       expect_const Lex.Semicolon ctx >>= fun (ctx, ()) ->
-      Ok (ctx, Extracted.SDeclare (Glue.nat_of_int id, t))
+      Ok (ctx, Ast.SDeclare (Glue.nat_of_int id, t))
   | ctx, Some (Lex.Ident id) ->
       expect_const Lex.Eq ctx >>= fun (ctx, ()) ->
       expr ctx >>= fun (ctx, e) ->
       expect_const Lex.Semicolon ctx >>= fun (ctx, ()) ->
-      Ok (ctx, Extracted.SAssign (Glue.nat_of_int id, e))
+      Ok (ctx, Ast.SAssign (Glue.nat_of_int id, e))
   | ctx, Some Lex.Return ->
       begin match peek ctx with
       | ctx, Some Lex.Semicolon ->
@@ -135,7 +134,7 @@ let rec statement ctx =
           expect_const Lex.Semicolon ctx >>= fun (ctx, ()) ->
           Ok (ctx, Extracted.Some e)
       end
-      >>= fun (ctx, expr) -> Ok (ctx, Extracted.SReturn expr)
+      >>= fun (ctx, expr) -> Ok (ctx, Ast.SReturn expr)
   | ctx, Some Lex.If -> begin
       expr ctx >>= fun (ctx, cond) ->
       block ctx >>= fun (ctx, on_true) ->
@@ -146,7 +145,7 @@ let rec statement ctx =
       end
       >>= fun (ctx, on_false) ->
       Error "if not implemented, no branching yet please"
-      (* Ok (ctx, Extracted.SIf (cond, on_true, on_false)) *)
+      (* Ok (ctx, Ast.SIf (cond, on_true, on_false)) *)
     end
   | _, Some tok -> unexpected_token "var, ident, return, if" tok
   | _, None -> unexpected_eof
@@ -174,20 +173,15 @@ let item ctx =
       expect_const Lex.CloseParen ctx >>= fun (ctx, ()) ->
       begin
         let ctx, tok = peek ctx in
-        match tok with
-        | Some Lex.OpenBrace -> Ok (ctx, Extracted.TNil)
-        | _ -> typ ctx
+        match tok with Some Lex.OpenBrace -> Ok (ctx, Ast.TNil) | _ -> typ ctx
       end
       >>= fun (ctx, ret_ty) ->
       block ctx >>= fun (ctx, body) ->
-      Ok
-        ( ctx,
-          Extracted.Func (Glue.nat_of_int name, ret_ty, Glue.rlist_of_list body)
-        )
+      Ok (ctx, Ast.Func (Glue.nat_of_int name, ret_ty, Glue.rlist_of_list body))
     end
   | _ -> Error "unexpected token"
 
-let top ctx : Extracted.item list result =
+let top ctx : Ast.item list result =
   let rec loop acc ctx =
     match peek ctx with
     | ctx, None -> Ok (ctx, acc)

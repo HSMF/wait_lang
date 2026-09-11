@@ -7,47 +7,50 @@ Inductive option (A: Type) : Type :=
   | None : option A
 .
 
-Inductive binop : Set :=
-  | BAdd : binop
-  | BSub : binop
-  | BMul : binop
-  | BDiv : binop
-  | BEq : binop
-  | BLess : binop
-  | BLessEq : binop
-  | BGreater : binop
-  | BGreaterEq : binop
-.
+Module Ast.
+  Inductive binop : Set :=
+    | BAdd : binop
+    | BSub : binop
+    | BMul : binop
+    | BDiv : binop
+    | BEq : binop
+    | BLess : binop
+    | BLessEq : binop
+    | BGreater : binop
+    | BGreaterEq : binop
+  .
 
-Inductive unop : Set :=
-  Neg : unop
-.
+  Inductive unop : Set :=
+    Neg : unop
+  .
 
-Inductive expr : Set :=
-  | EInteger : nat → expr
-  | EVar : nat → expr
-  | EBinop : expr → binop → expr → expr
-  | EUnop : unop → expr → expr
-.
+  Inductive expr : Set :=
+    | EInteger : nat → expr
+    | EVar : nat → expr
+    | EBinop : expr → binop → expr → expr
+    | EUnop : unop → expr → expr
+  .
 
-Inductive typ : Set :=
-  | TVar : nat → typ
-  | TNil : typ
-.
+  Inductive typ : Set :=
+    | TVar : nat → typ
+    | TNil : typ
+  .
 
-Inductive statement : Set :=
-  (* var <name> <typ> *)
-  | SDeclare : nat → typ → statement
-  (* <name> = <expr> *)
-  | SAssign : nat → expr → statement
-  (* return <expr>; | return; *)
-  | SReturn : option expr → statement
-.
+  Inductive statement : Set :=
+    (* var <name> <typ> *)
+    | SDeclare : nat → typ → statement
+    (* <name> = <expr> *)
+    | SAssign : nat → expr → statement
+    (* return <expr>; | return; *)
+    | SReturn : option expr → statement
+  .
 
-Inductive item : Set :=
-  (* name, ret, body *)
-  Func : nat → typ → list statement → item
-.
+  Inductive item : Set :=
+    (* name, ret, body *)
+    Func : nat → typ → list statement → item
+  .
+
+End Ast.
 
 Module Ir.
   Inductive label : Set :=
@@ -113,9 +116,9 @@ Module Ir.
   .
 End Ir.
 
-Definition compile ( e : item ) : nat :=
+Definition compile ( e : Ast.item ) : nat :=
   match e with
-  | Func name ret body => name
+  | Ast.Func name ret body => name
   end.
 
 Definition foo ( e : Ir.func ) : nat :=
