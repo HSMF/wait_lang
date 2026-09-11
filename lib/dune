@@ -1,0 +1,13 @@
+(library
+ (name Wait)
+ (modules hello lex parse extracted continuation glue))
+
+(include_subdirs qualified)
+
+(rule
+ (targets extracted.ml extracted.mli)
+ (deps (:v ../theories/Basic.v))
+ (action
+  (progn
+   (copy %{v} Basic.v)
+   (run rocq compile -R . WaitLang Basic.v))))

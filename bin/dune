@@ -1,0 +1,6 @@
+(executable
+ (public_name wait_lang)
+ (name main)
+ (libraries Wait)
+ (modes native)
+)

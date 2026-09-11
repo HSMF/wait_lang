@@ -1,0 +1,6 @@
+(rocq.theory
+ (name WaitLang)
+ (theories Stdlib)
+ ; (flags (:standard -R %{env:COQLIB=}/theories Stdlib))
+ )
+
