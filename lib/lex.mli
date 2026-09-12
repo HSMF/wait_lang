@@ -35,6 +35,7 @@ val empty_ctx : resolution_ctx
 val empty_names : name_map
 val string_of_tok : name_map -> token -> string
 val build_name_map : resolution_ctx -> name_map
+val get_name : int -> name_map -> string
 
 type chars
 

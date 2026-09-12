@@ -23,17 +23,16 @@ open Extracted
 open Ast
 
 let ( ++ ) = String.cat
+let nat_to_string = Fun.compose Int.to_string int_of_nat
 
-let rec nat_to_string x =
-  match x with O -> "O" | S i0 -> "S" ++ " " ++ nat_to_string i0
-
-let rec list_to_string a_to_string x =
-  match x with
-  | Nil -> "Nil"
-  | Cons (i0, i1) ->
-      "Cons" ++ " (" ++ a_to_string i0 ++ ", "
-      ++ list_to_string a_to_string i1
-      ++ ")"
+let list_to_string a_to_string x =
+  let rec inner lst =
+    match lst with
+    | Nil -> ""
+    | Cons (i0, Nil) -> a_to_string i0
+    | Cons (x, xs) -> a_to_string x ++ ", " ++ inner xs
+  in
+  "[" ++ inner x ++ "]"
 
 let option_to_string a_to_string x =
   match x with Some i0 -> "Some" ++ " " ++ a_to_string i0 | None -> "None"
@@ -157,4 +156,44 @@ module Ir = struct
         ++ ", "
         ++ list_to_string basic_block_to_string i2
         ++ ")"
+end
+
+module Pretty = struct
+  module Ir = struct
+    open! Ir
+    open Extracted.Ir
+    open Printf
+
+    let nat_to_string = Fun.compose Int.to_string int_of_nat
+    let label_to_string = nat_to_string
+    let ident_to_string x = String.cat "%" (nat_to_string x)
+
+    let rec map f = function
+      | Extracted.Nil -> []
+      | Extracted.Cons (x, xs) -> f x :: map f xs
+
+    let instr_to_string x =
+      match x with
+      | Instr (dst, op) ->
+          ident_to_string dst ++ " = " ++ operation_to_string op
+
+    let basic_block_to_string x =
+      match x with
+      | BasicBlock (i0, i1, i2) ->
+          let instr = map instr_to_string i1 in
+          let instr = List.map (String.cat "  ") instr in
+          let instr = List.map (Fun.flip String.cat "\n") instr in
+          let instr = String.concat "" instr in
+          label_to_string i0 ++ ":\n" ++ instr
+
+    let func_to_string names x =
+      match x with
+      | Func (name, entry, i2) ->
+          "define @"
+          ++ Lex.get_name (int_of_nat name) names
+          ++ "() {\n"
+          ++ basic_block_to_string entry
+          ++ String.concat "\n" (map basic_block_to_string i2)
+          ++ "}"
+  end
 end

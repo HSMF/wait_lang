@@ -85,6 +85,8 @@ let ident (ctx : resolution_ctx) s =
 let build_name_map ((ctx, _) : resolution_ctx) : name_map =
   Names.bindings ctx |> List.map (fun (a, b) -> (b, a)) |> NameMap.of_list
 
+let get_name name map = NameMap.find name map
+
 type chars = { chars : (int * char) Seq.t; peek : (int * char) list }
 
 let dbg_chars c =
