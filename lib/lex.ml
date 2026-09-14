@@ -72,6 +72,7 @@ let ident (ctx : resolution_ctx) s =
   | "var" -> (ctx, Var)
   | "if" -> (ctx, If)
   | "else" -> (ctx, Else)
+  | "return" -> (ctx, Return)
   | s -> begin
       let names, next = ctx in
       let i = Names.find_opt s names in

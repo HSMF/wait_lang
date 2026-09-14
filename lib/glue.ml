@@ -22,6 +22,44 @@ let rec list_of_rlist l =
 open Extracted
 open Ast
 
+let string_of_rstring rs =
+  let o b = match b with True -> 1 | False -> 0 in
+  let ( << ) = Int.shift_left in
+  let ( + ) = Int.logor in
+  let ascii_to_char a =
+    match a with
+    | Ascii (b0, b1, b2, b3, b4, b5, b6, b7) ->
+        (o b0 << 7)
+        + (o b1 << 6)
+        + (o b2 << 5)
+        + (o b3 << 4)
+        + (o b4 << 3)
+        + (o b5 << 2)
+        + (o b6 << 1)
+        + o b7
+        |> Char.chr
+  in
+  let buf = Buffer.create 0 in
+  let rec aux s =
+    match s with
+    | EmptyString -> ()
+    | String (x, xs) ->
+        Buffer.add_char buf (ascii_to_char x);
+        aux xs
+  in
+  aux rs;
+  Buffer.contents buf
+
+let rstring_of_string (s : String.t) =
+  let ( >> ) = Int.shift_right_logical in
+  let ( & ) = Int.logand in
+  let char_to_ascii ch =
+    let code = Char.code ch in
+    let b n = if (code >> n & 1) == 0 then False else True in
+    Ascii (b 7, b 6, b 5, b 4, b 3, b 2, b 1, b 0)
+  in
+  String.fold_right (fun ch a -> String (char_to_ascii ch, a)) s EmptyString
+
 let ( ++ ) = String.cat
 let nat_to_string = Fun.compose Int.to_string int_of_nat
 
@@ -78,7 +116,8 @@ module Ast = struct
   let item_to_string x =
     match x with
     | Func (i0, i1, i2) ->
-        "Func" ++ " (" ++ nat_to_string i0 ++ ", " ++ typ_to_string i1 ++ ", "
+        "Func" ++ " (" ++ string_of_rstring i0 ++ ", " ++ typ_to_string i1
+        ++ ", "
         ++ list_to_string statement_to_string i2
         ++ ")"
 end
@@ -118,6 +157,7 @@ module Ir = struct
     match x with
     | Jump i0 -> "Jump" ++ " " ++ label_to_string i0
     | Return i0 -> "Return" ++ " " ++ operand_to_string i0
+    | ReturnNil -> "ReturnNil"
     | CondJump (i0, i1, i2) ->
         "CondJump" ++ " (" ++ operand_to_string i0 ++ ", " ++ label_to_string i1
         ++ ", " ++ label_to_string i2 ++ ")"
@@ -152,8 +192,8 @@ module Ir = struct
   let func_to_string x =
     match x with
     | Func (i0, i1, i2) ->
-        "Func" ++ " (" ++ nat_to_string i0 ++ ", " ++ basic_block_to_string i1
-        ++ ", "
+        "Func" ++ " (" ++ string_of_rstring i0 ++ ", "
+        ++ basic_block_to_string i1 ++ ", "
         ++ list_to_string basic_block_to_string i2
         ++ ")"
 end
@@ -184,14 +224,13 @@ module Pretty = struct
           let instr = List.map (String.cat "  ") instr in
           let instr = List.map (Fun.flip String.cat "\n") instr in
           let instr = String.concat "" instr in
-          label_to_string i0 ++ ":\n" ++ instr
+          label_to_string i0 ++ ":\n" ++ instr ++ "  " ++ term_to_string i2
+          ++ "\n"
 
     let func_to_string names x =
       match x with
       | Func (name, entry, i2) ->
-          "define @"
-          ++ Lex.get_name (int_of_nat name) names
-          ++ "() {\n"
+          "define @" ++ string_of_rstring name ++ "() {\n"
           ++ basic_block_to_string entry
           ++ String.concat "\n" (map basic_block_to_string i2)
           ++ "}"

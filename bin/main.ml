@@ -1,9 +1,11 @@
-let src = {|
+let src =
+  {|
 func foo() {
   var x : int;
   x = 1;
   var y : int;
   y = x;
+  return x;
 }
 |}
 
@@ -37,3 +39,10 @@ let () =
   List.iter
     (fun item -> print_endline @@ Wait.Glue.Pretty.Ir.func_to_string names item)
     compiled
+
+let f =
+  List.map Wait.Extracted.Lower.lower compiled
+  |> List.map Wait.Glue.list_of_rlist
+  |> List.flatten
+
+let () = print_endline (Wait.Hello.asm_to_string f)

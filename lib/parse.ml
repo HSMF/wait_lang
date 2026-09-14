@@ -177,7 +177,13 @@ let item ctx =
       end
       >>= fun (ctx, ret_ty) ->
       block ctx >>= fun (ctx, body) ->
-      Ok (ctx, Ast.Func (Glue.nat_of_int name, ret_ty, Glue.rlist_of_list body))
+      let x = Lex.build_name_map ctx.names in
+      Ok
+        ( ctx,
+          Ast.Func
+            ( Glue.rstring_of_string (Lex.get_name name x),
+              ret_ty,
+              Glue.rlist_of_list body ) )
     end
   | _ -> Error "unexpected token"
 
